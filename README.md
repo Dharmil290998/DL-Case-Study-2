@@ -1,4 +1,4 @@
-# Deep Learning Case-Study-2
+# GANs (Case-Study-2)
 
 ### Project Overview
 This project is part of a group assignment to explore image generation and sentiment analysis using the Yelp dataset. The main objectives are:
