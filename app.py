@@ -1,36 +1,38 @@
-from flask import Flask, render_template, jsonify
+import streamlit as st
 import numpy as np
-import tensorflow as tf
-import base64
-from io import BytesIO
-from PIL import Image
+from tensorflow.keras.models import load_model
 
-app = Flask(__name__)
+# Load the pre-trained generator model
+@st.cache(allow_output_mutation=True)
+def load_generator_model():
+    return load_model('generator_model.h5')
 
-# Assuming you've already loaded your WGAN generator model
-generator = tf.keras.models.load_model('WGAN_generator.h5')
+# Function to generate a single random image
+def generate_single_image(generator, latent_dim=100):
+    # noise = np.random.normal(0, 1, (1, latent_dim))
+    # generated_image = generator.predict(noise)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
 
-@app.route('/generate', methods=['GET'])
-def generate_image():
-    latent_dim = 100 
-    # Generate a random noise input for the generator
-    noise = tf.random.normal([1, latent_dim])  # Ensure latent_dim is defined
-    generated_image = generator(noise, training=False)
-    
-    # Convert the generated image to a format that can be displayed in HTML
-    image_array = generated_image.numpy().squeeze()  # Remove batch dimension
-    image = Image.fromarray(((image_array + 1) * 127.5).astype(np.uint8))  # Rescale back to [0, 255]
-    
-    # Save image to a BytesIO object
-    buffered = BytesIO()
-    image.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-    
-    return jsonify({'image': img_str})
+    label_indices = [1]
+    labels = np.array(label_indices)
+    noise = np.random.normal(0,1,(len(label_indices),latent_dim))
+    generated_images = generator.predict([noise,labels])
+
+    return generated_images
+
+# Streamlit App
+def main():
+    st.title("DCGAN Model")
+    st.write("Click the button to generate a single random image.")
+
+    # Load generator model
+    generator = load_generator_model()
+    latent_dim = 100  # Adjust if your model uses a different latent dimension
+
+    if st.button("Generate Image"):
+        st.write("Generating a random image...")
+        generated_image = generate_single_image(generator, latent_dim)
+        st.image((generated_image + 1) / 2.0, caption="Generated Image", use_column_width=True)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    main()
